@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Mesh.h>
 #include "AbstractUITask.h"
+#include "bot.h"
 
 /*------------ Frame Protocol --------------*/
 #define FIRMWARE_VER_CODE 11
@@ -141,6 +142,9 @@ protected:
   void onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt, uint16_t data_type,
                          const uint8_t *data, size_t data_len) override;
 
+  // Bot integration
+  void processIncomingMessage(const ContactInfo &from, const char *text);
+
   uint8_t onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp, const uint8_t *data,
                            uint8_t len, uint8_t *reply) override;
   void onContactResponse(const ContactInfo &contact, const uint8_t *data, uint8_t len) override;
@@ -208,6 +212,7 @@ private:
   uint32_t pending_req;   // pending _BINARY_REQ
   BaseSerialInterface *_serial;
   AbstractUITask* _ui;
+  Bot* _bot;
 
   ContactsIterator _iter;
   uint32_t _iter_filter_since;

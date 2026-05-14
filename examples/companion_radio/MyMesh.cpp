@@ -2,6 +2,10 @@
 
 #include <Arduino.h> // needed for PlatformIO
 #include <Mesh.h>
+#include "bot.h"
+
+// Global bot instance
+Bot the_bot;
 
 #define CMD_APP_START                 1
 #define CMD_SEND_TXT_MSG              2
@@ -513,21 +517,35 @@ void MyMesh::sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pk
 void MyMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                            const char *text) {
   markConnectionActive(from); // in case this is from a server, and we have a connection
-  queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, NULL, 0, text);
+  
+  // Let the bot analyze the message for commands
+  if (!_bot->analyzeMessage(text, from)) {
+    // Not a bot command, queue as normal message
+    queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, NULL, 0, text);
+  }
 }
 
 void MyMesh::onCommandDataRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                                const char *text) {
   markConnectionActive(from); // in case this is from a server, and we have a connection
-  queueMessage(from, TXT_TYPE_CLI_DATA, pkt, sender_timestamp, NULL, 0, text);
+  
+  // Let the bot analyze the command data for commands
+  if (!_bot->analyzeMessage(text, from)) {
+    // Not a bot command, queue as CLI data
+    queueMessage(from, TXT_TYPE_CLI_DATA, pkt, sender_timestamp, NULL, 0, text);
+  }
 }
 
 void MyMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                                  const uint8_t *sender_prefix, const char *text) {
   markConnectionActive(from);
-  // from.sync_since change needs to be persisted
-  dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-  queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
+  
+  // Let the bot analyze the signed message for commands
+  if (!_bot->analyzeMessage(text, from)) {
+    // from.sync_since change needs to be persisted
+    dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+    queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
+  }
 }
 
 void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt, uint32_t timestamp,
@@ -846,6 +864,7 @@ void MyMesh::onSendTimeout() {}
 MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables, DataStore& store, AbstractUITask* ui)
     : BaseChatMesh(radio, *new ArduinoMillis(), rng, rtc, *new StaticPoolPacketManager(16), tables),
       _serial(NULL), telemetry(MAX_PACKET_PAYLOAD - 4), _store(&store), _ui(ui) {
+  _bot = &the_bot;
   _iter_started = false;
   _cli_rescue = false;
   offline_queue_len = 0;
@@ -880,6 +899,9 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
 
 void MyMesh::begin(bool has_display) {
   BaseChatMesh::begin();
+
+  // Initialize the bot
+  _bot->begin(this);
 
   if (!_store->loadMainIdentity(self_id)) {
     self_id = radio_new_identity(); // create new random identity
