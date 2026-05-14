@@ -4,6 +4,9 @@
 #include <Mesh.h>
 #include "bot.h"
 
+// Node discovery constants (from bot.h)
+#define ND_CTL_TYPE_NODE_DISCOVER_RESP  0x90
+
 // Global bot instance
 Bot the_bot;
 
@@ -784,6 +787,12 @@ void MyMesh::onControlDataRecv(mesh::Packet *packet) {
     MESH_DEBUG_PRINTLN("onControlDataRecv(), payload_len too long: %d", packet->payload_len);
     return;
   }
+  
+  // Check if this is a node discovery response (0x90)
+  if (packet->payload_len >= 1 && packet->payload[0] == ND_CTL_TYPE_NODE_DISCOVER_RESP) {
+    the_bot.onNodeDiscoverResponse(packet);
+  }
+  
   int i = 0;
   out_frame[i++] = PUSH_CODE_CONTROL_DATA;
   out_frame[i++] = (int8_t)(_radio->getLastSNR() * 4);
