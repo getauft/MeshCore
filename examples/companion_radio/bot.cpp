@@ -111,7 +111,7 @@ void Bot::onNodeDiscoverResponse(mesh::Packet* packet) {
     }
     
     // Check if discovery has timed out
-    if (millisHasNowPassed(_nd_until)) {
+    if (_mesh->millisHasNowPassed(_nd_until)) {
         finalizeNodeDiscovery(ContactInfo());  // timeout, no valid requestor
         return;
     }
