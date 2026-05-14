@@ -6,6 +6,12 @@
 class MyMesh;
 struct ContactInfo;
 
+// Node discovery constants
+#define ND_CTL_TYPE_NODE_DISCOVER_REQ   0x80
+#define ND_CTL_TYPE_NODE_DISCOVER_RESP  0x90
+#define ND_ADV_TYPE_REPEATER            2
+#define ND_MAX_DISCOVERED_NODES         16
+
 /**
  * @brief Bot class for analyzing incoming messages and responding to commands
  * 
@@ -41,10 +47,23 @@ public:
      * @return true if the message was a command that was handled, false otherwise
      */
     bool analyzeMessage(const char* text, const ContactInfo& from);
+    
+    /**
+     * @brief Handle node discover response packet
+     * @param packet The received control packet
+     */
+    void onNodeDiscoverResponse(mesh::Packet* packet);
 
 private:
     MyMesh* _mesh;
     bool _enabled;
+    
+    // Node discovery state
+    uint32_t _nd_tag;
+    unsigned long _nd_until;
+    bool _nd_active;
+    uint8_t _nd_count;
+    char _nd_prefixes[ND_MAX_DISCOVERED_NODES][17];  // Store up to 16 prefixes (8 hex chars + null)
     
     /**
      * @brief Send a text message response to a contact
@@ -57,6 +76,12 @@ private:
     void handleTimeCommand(const ContactInfo& from);
     void handleInfoCommand(const ContactInfo& from);
     void handleEchoCommand(const ContactInfo& from, const char* args);
+    void handleNdCommand(const ContactInfo& from);
+    
+    // Node discovery helpers
+    void startNodeDiscovery(const ContactInfo& from);
+    void sendNodeDiscoverReq();
+    void finalizeNodeDiscovery(const ContactInfo& from);
 };
 
 // Global bot instance
