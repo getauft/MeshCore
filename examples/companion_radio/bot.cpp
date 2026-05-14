@@ -6,6 +6,8 @@
 
 // Bot implementation for analyzing incoming messages and responding to commands
 
+#define BOT_MAX_MSG_LEN 120
+
 Bot::Bot() {
     _enabled = true;
     _nd_active = false;
@@ -143,17 +145,46 @@ void Bot::onNodeDiscoverResponse(mesh::Packet* packet) {
 
 /**
  * @brief Send a text message response to a contact
+ * If the message is longer than BOT_MAX_MSG_LEN, it will be split into multiple parts
  */
 void Bot::sendResponse(const ContactInfo& to, const char* text) {
     if (!_mesh || !text) {
         return;
     }
     
-    uint32_t timestamp = _mesh->getRTCClock()->getCurrentTime();
-    uint32_t expected_ack = 0;
-    uint32_t est_timeout = 0;
+    size_t text_len = strlen(text);
+    size_t offset = 0;
+    uint8_t part_num = 1;
+    uint8_t total_parts = (text_len + BOT_MAX_MSG_LEN - 1) / BOT_MAX_MSG_LEN;
     
-    _mesh->sendMessage(to, timestamp, 0, text, expected_ack, est_timeout);
+    while (offset < text_len) {
+        char chunk[BOT_MAX_MSG_LEN + 1];
+        size_t chunk_len = min(BOT_MAX_MSG_LEN, text_len - offset);
+        
+        // If multiple parts, add part indicator
+        if (total_parts > 1) {
+            snprintf(chunk, sizeof(chunk), "[%u/%u] %.*s", 
+                     part_num, total_parts, 
+                     (int)chunk_len, text + offset);
+        } else {
+            memcpy(chunk, text + offset, chunk_len);
+            chunk[chunk_len] = '\0';
+        }
+        
+        uint32_t timestamp = _mesh->getRTCClock()->getCurrentTime();
+        uint32_t expected_ack = 0;
+        uint32_t est_timeout = 0;
+        
+        _mesh->sendMessage(to, timestamp, 0, chunk, expected_ack, est_timeout);
+        
+        offset += chunk_len;
+        part_num++;
+        
+        // Small delay between parts
+        if (offset < text_len) {
+            delay(100);
+        }
+    }
 }
 
 /**
