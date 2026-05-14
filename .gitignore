@@ -1,1 +1,61 @@
-Nothing needs to be added to .gitignore since only source code files (.cpp and .h) were modified and no build artifacts, dependencies, or temporary files are present in the changes.
+```
+# PlatformIO build artifacts
+.pio/build/
+.pio/libdeps/
+.pio/platforms/
+.pio/packages/
+
+# Compiled files
+*.o
+*.obj
+*.elf
+*.hex
+*.bin
+*.map
+
+# Dependencies
+.pio/env/
+venv/
+.venv/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Build systems
+build/
+dist/
+target/
+.gradle/
+.mypy_cache/
+.pytest_cache/
+```
