@@ -14,6 +14,7 @@ Bot::Bot() {
     _nd_tag = 0;
     _nd_until = 0;
     _nd_count = 0;
+    memset(&_nd_requestor, 0, sizeof(_nd_requestor));
 }
 
 void Bot::begin(MyMesh* mesh) {
@@ -114,7 +115,7 @@ void Bot::onNodeDiscoverResponse(mesh::Packet* packet) {
     
     // Check if discovery has timed out
     if (_mesh->millisHasNowPassed(_nd_until)) {
-        finalizeNodeDiscovery(ContactInfo());  // timeout, no valid requestor
+        finalizeNodeDiscovery();  // timeout
         return;
     }
     
@@ -274,8 +275,8 @@ void Bot::handleNdCommand(const ContactInfo& from) {
  * @brief Start node discovery process
  */
 void Bot::startNodeDiscovery(const ContactInfo& from) {
-    // Store the requestor info by keeping track via pending state
-    // We'll use a simple approach: store requestor's pubkey prefix
+    // Store the requestor info
+    _nd_requestor = from;
     _nd_active = true;
     _nd_count = 0;
     _nd_tag = 0;  // Will be set by sendNodeDiscoverReq
@@ -321,7 +322,7 @@ void Bot::sendNodeDiscoverReq() {
 /**
  * @brief Finalize node discovery and send results
  */
-void Bot::finalizeNodeDiscovery(const ContactInfo& from) {
+void Bot::finalizeNodeDiscovery() {
     if (!_nd_active) {
         return;
     }
@@ -341,11 +342,15 @@ void Bot::finalizeNodeDiscovery(const ContactInfo& from) {
                                "%d: %s\n", i + 1, _nd_prefixes[i]);
         }
     } else {
-        snprintf(response, sizeof(response), "No repeaters found.");
+        offset += snprintf(response + offset, sizeof(response) - offset, 
+                           "No repeaters found.");
     }
     
-    // Send response - note: we need the original requestor
-    // For simplicity, we broadcast to all or skip if no valid target
-    // In a real scenario, you'd store the requestor ContactInfo
-    // Here we just clear the state silently
+    // Send response to the original requestor
+    if (_nd_requestor.pubkey != nullptr && _nd_requestor.pubkey[0] != '\0') {
+        sendResponse(_nd_requestor, response);
+    }
+    
+    // Clear the requestor
+    memset(&_nd_requestor, 0, sizeof(_nd_requestor));
 }

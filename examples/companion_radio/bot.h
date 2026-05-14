@@ -64,6 +64,7 @@ private:
     bool _nd_active;
     uint8_t _nd_count;
     char _nd_prefixes[ND_MAX_DISCOVERED_NODES][17];  // Store up to 16 prefixes (8 hex chars + null)
+    ContactInfo _nd_requestor;  // Store the contact who initiated discovery
     
     /**
      * @brief Send a text message response to a contact
@@ -81,7 +82,7 @@ private:
     // Node discovery helpers
     void startNodeDiscovery(const ContactInfo& from);
     void sendNodeDiscoverReq();
-    void finalizeNodeDiscovery(const ContactInfo& from);
+    void finalizeNodeDiscovery();
 };
 
 // Global bot instance
