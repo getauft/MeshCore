@@ -1,6 +1,10 @@
 #pragma once
 
-#include "MyMesh.h"
+#include <Mesh.h>
+
+// Forward declarations to avoid circular dependency
+class MyMesh;
+struct ContactInfo;
 
 /**
  * @brief Bot class for analyzing incoming messages and responding to commands

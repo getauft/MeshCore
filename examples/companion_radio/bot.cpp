@@ -1,4 +1,5 @@
 #include "bot.h"
+#include "MyMesh.h"
 #include <cstring>
 #include <cctype>
 
